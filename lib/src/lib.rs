@@ -3,6 +3,7 @@
 //!
 
 #[macro_use]
-extern crate protocol_derive;
+extern crate serde_derive;
+extern crate bincode;
 
 pub mod ed;
