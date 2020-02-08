@@ -1,0 +1,9 @@
+[package]
+name = "edlib"
+version = "0.1.0"
+authors = ["Frits Kuipers <frits.kuipers@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+protocol = "3.1.3"
+protocol-derive = "3.1.3"
