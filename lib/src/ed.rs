@@ -1,7 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-/// STX/ETX byte
+/// STX Start byte for every packet
 pub const STX: u8 = 0x55;
+/// ETX Stop byte for every packet
 pub const ETX: u8 = 0xAA;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -71,8 +72,12 @@ impl PacketGenerator {
         let t = Packet {
             stx: STX,
             p: packet,
-            etx: ETX
+            etx: ETX,
         };
         bincode::serialize(&t).unwrap()
     }
+
+    // pub fn deserialize<T: Deserialize>(data: Vec<u8>) -> T {
+    //     bincode::deserialize(&data).unwrap()
+    // }
 }
