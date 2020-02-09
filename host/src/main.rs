@@ -29,7 +29,9 @@ fn handle_client(mut stream: TcpStream) {
 }
 
 fn main() {
-    let listener = TcpListener::bind("0.0.0.0:34254").unwrap();
+    let ip = std::net::Ipv6Addr::UNSPECIFIED;
+    let addr = std::net::SocketAddrV6::new(ip, 34254, 0, 0);
+    let listener = TcpListener::bind(addr).unwrap();
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

@@ -4,7 +4,9 @@ use std::net::{Shutdown, TcpStream};
 pub use edlib::packet::PacketGenerator;
 
 fn main() -> std::io::Result<()> {
-    let mut stream = TcpStream::connect("127.0.0.1:34254")?;
+    let ip = std::net::Ipv6Addr::UNSPECIFIED;
+    let addr = std::net::SocketAddrV6::new(ip, 34254, 0, 0);
+    let mut stream = TcpStream::connect(addr)?;
 
     let packet = PacketGenerator::serialize(PacketGenerator::get_version());
 

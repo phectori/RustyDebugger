@@ -5,8 +5,9 @@ pub const STX: u8 = 0x55;
 /// ETX Stop byte for every packet
 pub const ETX: u8 = 0xAA;
 
-
-pub const GET_INFO: u8 = 0x49;
+pub const COMMAND_GET_INFO: u8 = 0x49; // 'I'
+pub const COMMAND_GET_VERSION: u8 = 0x56; // 'V'
+pub const COMMAND_WRITE_VERSION: u8 = 0x57; // 'W'
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Packet<T: Serialize> {
@@ -17,7 +18,26 @@ pub struct Packet<T: Serialize> {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Generic {
-    pub cmd: u8,
+    // Used for packages that only send a command
+    // Such as: GetInfo, GetVersion
+    pub command: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct GetInfoResponse {
+    pub command: u8,
+    /// Debug library/protocol version
+    pub dv3: u8,
+    pub dv2: u8,
+    pub dv01: u16,
+    /// Application version
+    pub av3: u8,
+    pub av2: u8,
+    pub av01: u16,
+    /// Name
+    pub name: String,
+    /// Serial number
+    pub sn: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -47,22 +67,19 @@ pub struct PacketGenerator {}
 impl PacketGenerator {
     pub fn get_info() -> Generic {
         Generic {
-            // 'I'
-            cmd: GET_INFO,
+            command: COMMAND_GET_INFO,
         }
     }
 
     pub fn get_version() -> Generic {
         Generic {
-            // 'V'
-            cmd: 0x56,
+            command: COMMAND_GET_VERSION,
         }
     }
 
     pub fn write_register(off: u32, ctrl: u8, d: Vec<u8>) -> WriteRegister {
         WriteRegister {
-            // 'W'
-            command: 0x57,
+            command: COMMAND_WRITE_VERSION,
             off: off,
             ctrl: ctrl,
             d: d,
@@ -77,6 +94,16 @@ impl PacketGenerator {
         };
         bincode::config().little_endian().serialize(&t).unwrap()
     }
+
+    // pub fn deserialize_typed<'a, T>(data: &'a Vec<u8>) -> T
+    // where
+    //     T: serde::de::Deserialize<'a>,
+    // {
+    //     match data[1] {
+    //         GET_INFO => PacketGenerator::deserialize(&data),
+    //         _ => PacketGenerator::deserialize(&data),
+    //     }
+    // }
 
     pub fn deserialize<'a, T>(data: &'a Vec<u8>) -> T
     where
@@ -99,19 +126,50 @@ mod tests {
     }
 
     #[test]
-    fn get_info_serialized() {
-        let p = PacketGenerator::get_info();
-        let serialized = PacketGenerator::serialize(&p);
-        let deserialize: Packet<Generic> = PacketGenerator::deserialize(&serialized);
-
-        assert_eq!(p, deserialize.p);
-    }
-
-    #[test]
     fn get_version() {
         assert_eq!(
             PacketGenerator::serialize(PacketGenerator::get_version()),
             vec![STX, 0x56, ETX]
+        );
+    }
+
+    #[test]
+    fn get_version_response() {
+        assert_eq!(
+            PacketGenerator::serialize(GetInfoResponse {
+                command: COMMAND_GET_VERSION,
+                dv3: 2,
+                dv2: 3,
+                dv01: 1113,
+                av3: 2,
+                av2: 3,
+                av01: 1113,
+                name: "Test".to_string(),
+                sn: vec![1, 2, 3, 4],
+            }),
+            vec![
+                STX,
+                COMMAND_GET_VERSION,
+                0x02,
+                0x03,
+                0x59,
+                0x04,
+                0x02,
+                0x03,
+                0x59,
+                0x04,
+                0x04,
+                84,
+                101,
+                115,
+                116,
+                0x04,
+                1,
+                2,
+                3,
+                4,
+                ETX
+            ]
         );
     }
 
@@ -123,6 +181,15 @@ mod tests {
             PacketGenerator::serialize(p),
             vec![STX, 0x57, 10, 0, 0, 0, 0xF0, 4, 1, 2, 3, 4, ETX]
         );
+    }
+
+    #[test]
+    fn get_info_serialized() {
+        let p = PacketGenerator::get_info();
+        let serialized = PacketGenerator::serialize(&p);
+        let deserialize: Packet<Generic> = PacketGenerator::deserialize(&serialized);
+
+        assert_eq!(p, deserialize.p);
     }
 
     #[test]
