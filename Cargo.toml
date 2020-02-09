@@ -4,3 +4,6 @@ members = [
     "lib",
     "host",
 ]
+
+[patch.crates-io]
+bincode = { path = './lib/bincode' }

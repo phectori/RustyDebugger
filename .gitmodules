@@ -1,0 +1,4 @@
+[submodule "lib/bincode"]
+	path = lib/bincode
+	url = https://github.com/phectori/bincode.git
+	branch = sizefield_is_u8

@@ -25,8 +25,7 @@ pub struct WriteRegister {
     pub off: u32,
     /// Control
     pub ctrl: u8,
-    /// Number of bytes to write
-    pub size: u8,
+    /// Number of bytes to write is already serialized by bincode
     /// Data-bytes, only number of bytes used are sent
     pub d: Vec<u8>,
 }
@@ -64,7 +63,6 @@ impl PacketGenerator {
             command: 0x57,
             off: off,
             ctrl: ctrl,
-            size: d.len() as u8,
             d: d,
         }
     }
@@ -75,7 +73,7 @@ impl PacketGenerator {
             p: packet,
             etx: ETX,
         };
-        bincode::serialize(&t).unwrap()
+        bincode::config().little_endian().serialize(&t).unwrap()
     }
 
     // pub fn deserialize<'a, T> (data: Vec<u8>) -> bincode::Result<T> {
@@ -100,6 +98,16 @@ mod tests {
         assert_eq!(
             PacketGenerator::serialize(PacketGenerator::get_version()),
             vec![STX, 0x56, ETX]
+        );
+    }
+
+    #[test]
+    fn write_register() {
+        let p = PacketGenerator::write_register(10, 0xF0, vec![1,2,3,4]);
+
+        assert_eq!(
+            PacketGenerator::serialize(p),
+            vec![STX, 0x57, 10, 0, 0, 0, 0xF0, 4, 1,2,3,4, ETX]
         );
     }
 }
