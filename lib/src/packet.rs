@@ -78,29 +78,11 @@ impl PacketGenerator {
         bincode::config().little_endian().serialize(&t).unwrap()
     }
 
-    // pub fn deserialize<T>(data: Vec<u8>) -> Option<T> {
-    //     if data.len() < 3 {
-    //         // Return error
-    //     }
-
-    //     if data[0] != STX && data[data.len()] == ETX {
-    //         // return
-    //     }
-
-    //     match data[1] {
-    //         GET_INFO => return Some(PacketGenerator::deserialize_generic(data)),
-    //         _ => None,
-    //     }
-    // }
-
-    pub fn deserialize_generic(data: Vec<u8>) -> Generic {
-        let decoded: Packet<Generic> = bincode::deserialize(&data).unwrap();
-        decoded.p
-    }
-
-    pub fn deserialize_write_register(data: Vec<u8>) -> WriteRegister {
-        let decoded: Packet<WriteRegister> = bincode::deserialize(&data).unwrap();
-        decoded.p
+    pub fn deserialize<'a, T>(data: &'a Vec<u8>) -> T
+    where
+        T: serde::de::Deserialize<'a>,
+    {
+        bincode::deserialize(&data).unwrap()
     }
 }
 
@@ -120,9 +102,9 @@ mod tests {
     fn get_info_serialized() {
         let p = PacketGenerator::get_info();
         let serialized = PacketGenerator::serialize(&p);
-        let deserialize = PacketGenerator::deserialize_generic(serialized);
+        let deserialize: Packet<Generic> = PacketGenerator::deserialize(&serialized);
 
-        assert_eq!(p, deserialize);
+        assert_eq!(p, deserialize.p);
     }
 
     #[test]
@@ -147,8 +129,8 @@ mod tests {
     fn write_register_serialized() {
         let p = PacketGenerator::write_register(10, 0xF0, vec![1, 2, 3, 4]);
         let serialized = PacketGenerator::serialize(&p);
-        let deserialize = PacketGenerator::deserialize_write_register(serialized);
+        let deserialize: Packet<WriteRegister> = PacketGenerator::deserialize(&serialized);
 
-        assert_eq!(p, deserialize);
+        assert_eq!(p, deserialize.p);
     }
 }
