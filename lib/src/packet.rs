@@ -1,10 +1,12 @@
-//use serde::de::Deserialize;
 use serde::Serialize;
 
 /// STX Start byte for every packet
 pub const STX: u8 = 0x55;
 /// ETX Stop byte for every packet
 pub const ETX: u8 = 0xAA;
+
+
+pub const GET_INFO: u8 = 0x49;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Packet<T: Serialize> {
@@ -46,7 +48,7 @@ impl PacketGenerator {
     pub fn get_info() -> Generic {
         Generic {
             // 'I'
-            cmd: 0x49,
+            cmd: GET_INFO,
         }
     }
 
@@ -76,9 +78,30 @@ impl PacketGenerator {
         bincode::config().little_endian().serialize(&t).unwrap()
     }
 
-    // pub fn deserialize<'a, T> (data: Vec<u8>) -> bincode::Result<T> {
-    //     bincode::deserialize(&data).unwrap()
+    // pub fn deserialize<T>(data: Vec<u8>) -> Option<T> {
+    //     if data.len() < 3 {
+    //         // Return error
+    //     }
+
+    //     if data[0] != STX && data[data.len()] == ETX {
+    //         // return
+    //     }
+
+    //     match data[1] {
+    //         GET_INFO => return Some(PacketGenerator::deserialize_generic(data)),
+    //         _ => None,
+    //     }
     // }
+
+    pub fn deserialize_generic(data: Vec<u8>) -> Generic {
+        let decoded: Packet<Generic> = bincode::deserialize(&data).unwrap();
+        decoded.p
+    }
+
+    pub fn deserialize_write_register(data: Vec<u8>) -> WriteRegister {
+        let decoded: Packet<WriteRegister> = bincode::deserialize(&data).unwrap();
+        decoded.p
+    }
 }
 
 #[cfg(test)]
@@ -94,6 +117,15 @@ mod tests {
     }
 
     #[test]
+    fn get_info_serialized() {
+        let p = PacketGenerator::get_info();
+        let serialized = PacketGenerator::serialize(&p);
+        let deserialize = PacketGenerator::deserialize_generic(serialized);
+
+        assert_eq!(p, deserialize);
+    }
+
+    #[test]
     fn get_version() {
         assert_eq!(
             PacketGenerator::serialize(PacketGenerator::get_version()),
@@ -103,11 +135,20 @@ mod tests {
 
     #[test]
     fn write_register() {
-        let p = PacketGenerator::write_register(10, 0xF0, vec![1,2,3,4]);
+        let p = PacketGenerator::write_register(10, 0xF0, vec![1, 2, 3, 4]);
 
         assert_eq!(
             PacketGenerator::serialize(p),
-            vec![STX, 0x57, 10, 0, 0, 0, 0xF0, 4, 1,2,3,4, ETX]
+            vec![STX, 0x57, 10, 0, 0, 0, 0xF0, 4, 1, 2, 3, 4, ETX]
         );
+    }
+
+    #[test]
+    fn write_register_serialized() {
+        let p = PacketGenerator::write_register(10, 0xF0, vec![1, 2, 3, 4]);
+        let serialized = PacketGenerator::serialize(&p);
+        let deserialize = PacketGenerator::deserialize_write_register(serialized);
+
+        assert_eq!(p, deserialize);
     }
 }
