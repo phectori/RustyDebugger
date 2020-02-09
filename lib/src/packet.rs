@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+//use serde::de::Deserialize;
+use serde::Serialize;
 
 /// STX Start byte for every packet
 pub const STX: u8 = 0x55;
@@ -77,7 +78,28 @@ impl PacketGenerator {
         bincode::serialize(&t).unwrap()
     }
 
-    // pub fn deserialize<T: Deserialize>(data: Vec<u8>) -> T {
+    // pub fn deserialize<'a, T> (data: Vec<u8>) -> bincode::Result<T> {
     //     bincode::deserialize(&data).unwrap()
     // }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_info() {
+        assert_eq!(
+            PacketGenerator::serialize(PacketGenerator::get_info()),
+            vec![STX, 0x49, ETX]
+        );
+    }
+
+    #[test]
+    fn get_version() {
+        assert_eq!(
+            PacketGenerator::serialize(PacketGenerator::get_version()),
+            vec![STX, 0x56, ETX]
+        );
+    }
 }

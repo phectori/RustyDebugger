@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::net::{Shutdown, TcpStream};
 
-pub use edlib::ed::*;
+pub use edlib::packet::PacketGenerator;
 
 fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("127.0.0.1:34254")?;

@@ -6,4 +6,4 @@
 extern crate serde_derive;
 extern crate bincode;
 
-pub mod ed;
+pub mod packet;
