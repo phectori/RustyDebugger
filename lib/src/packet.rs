@@ -1,4 +1,5 @@
 use serde::Serialize;
+use crc_all::Crc;
 
 /// STX Start byte for every packet
 pub const STX: u8 = 0x55;
@@ -7,13 +8,21 @@ pub const ETX: u8 = 0xAA;
 
 pub const COMMAND_GET_INFO: u8 = 0x49; // 'I'
 pub const COMMAND_GET_VERSION: u8 = 0x56; // 'V'
-pub const COMMAND_WRITE_VERSION: u8 = 0x57; // 'W'
+pub const COMMAND_WRITE_REGISTER: u8 = 0x57; // 'W'
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Packet<T: Serialize> {
     stx: u8,
-    p: T,
+    content: T,
+    crc: u8,
     etx: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Content<T: Serialize> {
+    uc: u8,
+    id: u8,
+    p: T,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -24,7 +33,7 @@ pub struct Generic {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct GetInfoResponse {
+pub struct GetVersionResponse {
     pub command: u8,
     /// Debug library/protocol version
     pub dv3: u8,
@@ -79,7 +88,7 @@ impl PacketGenerator {
 
     pub fn write_register(off: u32, ctrl: u8, d: Vec<u8>) -> WriteRegister {
         WriteRegister {
-            command: COMMAND_WRITE_VERSION,
+            command: COMMAND_WRITE_REGISTER,
             off: off,
             ctrl: ctrl,
             d: d,
@@ -87,23 +96,26 @@ impl PacketGenerator {
     }
 
     pub fn serialize<T: Serialize>(packet: T) -> Vec<u8> {
+        let c = Content {
+            uc: 1, // TODO
+            id: 1, // TODO
+            p: packet,
+        };
+
+        let c_encoded = &bincode::serialize(&c).unwrap();
+
+        // TODO: Move the crc algo declaration
+        let mut crc8_maxim = Crc::<u8>::new(0x31, 8, 0, 0, true);
+        let crc = crc8_maxim.update(&c_encoded);
+
         let t = Packet {
             stx: STX,
-            p: packet,
+            content: c,
+            crc: crc,
             etx: ETX,
         };
         bincode::config().little_endian().serialize(&t).unwrap()
     }
-
-    // pub fn deserialize_typed<'a, T>(data: &'a Vec<u8>) -> T
-    // where
-    //     T: serde::de::Deserialize<'a>,
-    // {
-    //     match data[1] {
-    //         GET_INFO => PacketGenerator::deserialize(&data),
-    //         _ => PacketGenerator::deserialize(&data),
-    //     }
-    // }
 
     pub fn deserialize<'a, T>(data: &'a Vec<u8>) -> T
     where
@@ -121,7 +133,7 @@ mod tests {
     fn get_info() {
         assert_eq!(
             PacketGenerator::serialize(PacketGenerator::get_info()),
-            vec![STX, 0x49, ETX]
+            vec![STX, 0x01, 0x01, 0x49, 0xB5, ETX]
         );
     }
 
@@ -129,14 +141,14 @@ mod tests {
     fn get_version() {
         assert_eq!(
             PacketGenerator::serialize(PacketGenerator::get_version()),
-            vec![STX, 0x56, ETX]
+            vec![STX, 0x01, 0x01, 0x56, 0x69, ETX]
         );
     }
 
     #[test]
     fn get_version_response() {
         assert_eq!(
-            PacketGenerator::serialize(GetInfoResponse {
+            PacketGenerator::serialize(GetVersionResponse {
                 command: COMMAND_GET_VERSION,
                 dv3: 2,
                 dv2: 3,
@@ -149,6 +161,8 @@ mod tests {
             }),
             vec![
                 STX,
+                0x01,
+                0x01,
                 COMMAND_GET_VERSION,
                 0x02,
                 0x03,
@@ -168,6 +182,7 @@ mod tests {
                 2,
                 3,
                 4,
+                0x7F,
                 ETX
             ]
         );
@@ -179,7 +194,7 @@ mod tests {
 
         assert_eq!(
             PacketGenerator::serialize(p),
-            vec![STX, 0x57, 10, 0, 0, 0, 0xF0, 4, 1, 2, 3, 4, ETX]
+            vec![STX, 0x01, 0x01, 0x57, 10, 0, 0, 0, 0xF0, 4, 1, 2, 3, 4, 0xB6, ETX]
         );
     }
 
@@ -187,17 +202,17 @@ mod tests {
     fn get_info_serialized() {
         let p = PacketGenerator::get_info();
         let serialized = PacketGenerator::serialize(&p);
-        let deserialize: Packet<Generic> = PacketGenerator::deserialize(&serialized);
+        let deserialize: Packet<Content<Generic>> = PacketGenerator::deserialize(&serialized);
 
-        assert_eq!(p, deserialize.p);
+        assert_eq!(p, deserialize.content.p);
     }
 
     #[test]
     fn write_register_serialized() {
         let p = PacketGenerator::write_register(10, 0xF0, vec![1, 2, 3, 4]);
         let serialized = PacketGenerator::serialize(&p);
-        let deserialize: Packet<WriteRegister> = PacketGenerator::deserialize(&serialized);
+        let deserialize: Packet<Content<WriteRegister>> = PacketGenerator::deserialize(&serialized);
 
-        assert_eq!(p, deserialize.p);
+        assert_eq!(p, deserialize.content.p);
     }
 }

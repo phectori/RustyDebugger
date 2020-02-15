@@ -11,6 +11,11 @@ fn main() -> std::io::Result<()> {
     let packet = PacketGenerator::serialize(PacketGenerator::get_version());
 
     stream.write(&packet)?;
+
+    // loop {
+    //     stream.read(buf: &mut [u8])
+    // }
+
     stream
         .shutdown(Shutdown::Both)
         .expect("shutdown call failed");
