@@ -26,7 +26,6 @@ fn handle_client(mut stream: TcpStream) {
 }
 
 fn print_packet(data: &mut [u8], size: usize) {
-
     for i in 0..size {
         match data[i] {
             ETX => {

@@ -47,11 +47,10 @@ impl Protocol {
 
         if command == COMMAND_GET_VERSION {
             let p: Packet<Content<GetVersionResponse>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p);
-        }
-        else if command == COMMAND_WRITE_REGISTER {
+            println!("Received {:?}", p.content.p);
+        } else if command == COMMAND_WRITE_REGISTER {
             let p: Packet<Content<WriteRegisterResponse>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p);
+            println!("Received {:?}", p.content.p);
         }
     }
 
@@ -61,28 +60,31 @@ impl Protocol {
 
         if command == COMMAND_GET_VERSION {
             let p: Packet<Content<Generic>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p);
+            println!("Received {:?}", p.content.p);
 
-            let r = GetVersionResponse {
+            let r = Content {
+                uc: 1, // TODO
+                id: 1, // TODO
                 command: COMMAND_GET_VERSION,
-                dv3: 2,
-                dv2: 3,
-                dv01: 1113,
-                av3: 2,
-                av2: 3,
-                av01: 1113,
-                name: "Test".to_string(),
-                sn: vec![1, 2, 3, 4],
+                p: GetVersionResponse {
+                    dv3: 2,
+                    dv2: 3,
+                    dv01: 1113,
+                    av3: 2,
+                    av2: 3,
+                    av01: 1113,
+                    name: "Test".to_string(),
+                    sn: vec![1, 2, 3, 4],
+                },
             };
             println!("Responded with {:?}", r);
 
             let mut response = PacketGenerator::serialize(r);
-            
+
             self.response.append(&mut response);
-        }
-        else if command == COMMAND_WRITE_REGISTER {
+        } else if command == COMMAND_WRITE_REGISTER {
             let p: Packet<Content<WriteRegister>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p);
+            println!("Received {:?}", p.content.p);
         }
     }
 

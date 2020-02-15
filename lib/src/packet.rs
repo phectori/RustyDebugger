@@ -1,5 +1,5 @@
-use serde::Serialize;
 use crc_all::Crc;
+use serde::Serialize;
 
 /// STX Start byte for every packet
 pub const STX: u8 = 0x55;
@@ -13,28 +13,27 @@ pub const COMMAND_WRITE_REGISTER: u8 = 0x57; // 'W'
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Packet<T: Serialize> {
     stx: u8,
-    content: T,
+    pub content: T,
     crc: u8,
     etx: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Content<T: Serialize> {
-    uc: u8,
-    id: u8,
-    p: T,
+    pub uc: u8,
+    pub id: u8,
+    pub command: u8,
+    pub p: T,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Generic {
     // Used for packages that only send a command
-    // Such as: GetInfo, GetVersion
-    pub command: u8,
+// Such as: GetInfo, GetVersion
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetVersionResponse {
-    pub command: u8,
     /// Debug library/protocol version
     pub dv3: u8,
     pub dv2: u8,
@@ -51,7 +50,6 @@ pub struct GetVersionResponse {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct WriteRegister {
-    pub command: u8,
     /// Offset address in bytes (4Gb addressable)
     pub off: u32,
     /// Control
@@ -63,7 +61,6 @@ pub struct WriteRegister {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct WriteRegisterResponse {
-    pub command: u8,
     /// Result:
     /// 0x00 = ok, value is written
     /// 0x01 = invalid (offset) address
@@ -74,47 +71,50 @@ pub struct WriteRegisterResponse {
 pub struct PacketGenerator {}
 
 impl PacketGenerator {
-    pub fn get_info() -> Generic {
-        Generic {
+    pub fn get_info() -> Content<Generic> {
+        Content {
+            uc: 1, // TODO
+            id: 1, // TODO
             command: COMMAND_GET_INFO,
+            p: Generic {},
         }
     }
 
-    pub fn get_version() -> Generic {
-        Generic {
+    pub fn get_version() -> Content<Generic> {
+        Content {
+            uc: 1, // TODO
+            id: 1, // TODO
             command: COMMAND_GET_VERSION,
+            p: Generic {},
         }
     }
 
-    pub fn write_register(off: u32, ctrl: u8, d: Vec<u8>) -> WriteRegister {
-        WriteRegister {
+    pub fn write_register(off: u32, ctrl: u8, d: Vec<u8>) -> Content<WriteRegister> {
+        Content {
+            uc: 1, // TODO
+            id: 1, // TODO
             command: COMMAND_WRITE_REGISTER,
-            off: off,
-            ctrl: ctrl,
-            d: d,
+            p: WriteRegister {
+                off: off,
+                ctrl: ctrl,
+                d: d,
+            },
         }
     }
 
     pub fn serialize<T: Serialize>(packet: T) -> Vec<u8> {
-        let c = Content {
-            uc: 1, // TODO
-            id: 1, // TODO
-            p: packet,
-        };
-
-        let c_encoded = &bincode::serialize(&c).unwrap();
+        let mut serialized = bincode::serialize(&packet).unwrap();
 
         // TODO: Move the crc algo declaration
         let mut crc8_maxim = Crc::<u8>::new(0x31, 8, 0, 0, true);
-        let crc = crc8_maxim.update(&c_encoded);
+        let crc = crc8_maxim.update(&serialized);
 
-        let t = Packet {
-            stx: STX,
-            content: c,
-            crc: crc,
-            etx: ETX,
-        };
-        bincode::config().little_endian().serialize(&t).unwrap()
+        // Prepend STX
+        serialized.splice(0..0, vec![STX].iter().cloned());
+        // Append crc and ETX
+        serialized.push(crc);
+        serialized.push(ETX);
+        serialized
     }
 
     pub fn deserialize<'a, T>(data: &'a Vec<u8>) -> T
@@ -148,16 +148,20 @@ mod tests {
     #[test]
     fn get_version_response() {
         assert_eq!(
-            PacketGenerator::serialize(GetVersionResponse {
+            PacketGenerator::serialize(Content {
+                uc: 1,
+                id: 1,
                 command: COMMAND_GET_VERSION,
-                dv3: 2,
-                dv2: 3,
-                dv01: 1113,
-                av3: 2,
-                av2: 3,
-                av01: 1113,
-                name: "Test".to_string(),
-                sn: vec![1, 2, 3, 4],
+                p: GetVersionResponse {
+                    dv3: 2,
+                    dv2: 3,
+                    dv01: 1113,
+                    av3: 2,
+                    av2: 3,
+                    av01: 1113,
+                    name: "Test".to_string(),
+                    sn: vec![1, 2, 3, 4],
+                },
             }),
             vec![
                 STX,
@@ -204,7 +208,7 @@ mod tests {
         let serialized = PacketGenerator::serialize(&p);
         let deserialize: Packet<Content<Generic>> = PacketGenerator::deserialize(&serialized);
 
-        assert_eq!(p, deserialize.content.p);
+        assert_eq!(p, deserialize.content);
     }
 
     #[test]
@@ -213,6 +217,6 @@ mod tests {
         let serialized = PacketGenerator::serialize(&p);
         let deserialize: Packet<Content<WriteRegister>> = PacketGenerator::deserialize(&serialized);
 
-        assert_eq!(p, deserialize.content.p);
+        assert_eq!(p, deserialize.content);
     }
 }
