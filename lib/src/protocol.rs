@@ -47,12 +47,12 @@ impl Protocol {
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
-            let p: Packet<GetVersionResponse> = PacketGenerator::deserialize(&data);
+            let p: Packet<Content<GetVersionResponse>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
         }
 
         if command == COMMAND_WRITE_REGISTER {
-            let p: Packet<WriteRegisterResponse> = PacketGenerator::deserialize(&data);
+            let p: Packet<Content<WriteRegisterResponse>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
         }
     }
@@ -62,7 +62,7 @@ impl Protocol {
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
-            let p: Packet<Generic> = PacketGenerator::deserialize(&data);
+            let p: Packet<Content<Generic>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
 
             let r = GetVersionResponse {
@@ -84,7 +84,7 @@ impl Protocol {
         }
 
         if command == COMMAND_WRITE_REGISTER {
-            let p: Packet<WriteRegister> = PacketGenerator::deserialize(&data);
+            let p: Packet<Content<WriteRegister>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
         }
     }
