@@ -43,15 +43,13 @@ impl Protocol {
 
     // Processing incomming messages on the client side (Debugger side)
     pub fn process_packet(&mut self, data: Vec<u8>) {
-        println!("{:?}", data);
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
             let p: Packet<Content<GetVersionResponse>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
         }
-
-        if command == COMMAND_WRITE_REGISTER {
+        else if command == COMMAND_WRITE_REGISTER {
             let p: Packet<Content<WriteRegisterResponse>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
         }
@@ -82,8 +80,7 @@ impl Protocol {
             
             self.response.append(&mut response);
         }
-
-        if command == COMMAND_WRITE_REGISTER {
+        else if command == COMMAND_WRITE_REGISTER {
             let p: Packet<Content<WriteRegister>> = PacketGenerator::deserialize(&data);
             println!("Received {:?}", p);
         }

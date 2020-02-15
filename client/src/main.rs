@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::net::{Shutdown, TcpStream};
 
 pub use edlib::packet::PacketGenerator;
+pub use edlib::protocol::Protocol;
 
 fn main() -> std::io::Result<()> {
     let ip = std::net::Ipv6Addr::UNSPECIFIED;
@@ -12,13 +13,19 @@ fn main() -> std::io::Result<()> {
 
     stream.write(&packet)?;
 
-    // loop {
-    //     stream.read(buf: &mut [u8])
-    // }
+    let mut protocol = Protocol::default();
+    let mut buffer = [0; 10];
+    loop {
+        stream.read(&mut buffer)?;
+        if let Some(packet) = protocol.process_data(buffer.to_vec()) {
+            protocol.process_packet(packet);
+            stream.write(&protocol.take_response()).unwrap();
+        }
+    }
 
-    stream
-        .shutdown(Shutdown::Both)
-        .expect("shutdown call failed");
+    // stream
+    //     .shutdown(Shutdown::Both)
+    //     .expect("shutdown call failed");
 
-    Ok(())
+    // Ok(())
 }
