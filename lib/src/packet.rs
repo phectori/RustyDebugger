@@ -6,9 +6,15 @@ pub const STX: u8 = 0x55;
 /// ETX Stop byte for every packet
 pub const ETX: u8 = 0xAA;
 
-pub const COMMAND_GET_INFO: u8 = 0x49; // 'I'
-pub const COMMAND_GET_VERSION: u8 = 0x56; // 'V'
-pub const COMMAND_WRITE_REGISTER: u8 = 0x57; // 'W'
+pub const COMMAND_GET_INFO: u8 = 'I' as u8;
+pub const COMMAND_GET_VERSION: u8 = 'V' as u8;
+pub const COMMAND_WRITE_REGISTER: u8 = 'W' as u8;
+pub const COMMAND_QUERY_REGISTER: u8 = 'Q' as u8;
+pub const COMMAND_CONFIG_CHANNEL: u8 = 'C' as u8;
+pub const COMMAND_CONFIG_DECIMATION: u8 = 'D' as u8;
+pub const COMMAND_RESET_TIME: u8 = 'T' as u8;
+pub const COMMAND_READ_CHANNEL_DATA: u8 = 'R' as u8;
+pub const COMMAND_DEBUG_STRING: u8 = 'S' as u8;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Packet<T: Serialize> {
@@ -69,8 +75,8 @@ pub struct WriteRegisterResponse {
 }
 
 pub struct PacketGenerator {
-    uc : u8,
-    id : u8,
+    uc: u8,
+    id: u8,
     crc8_maxim: crc_all::Crc<u8>,
 }
 
@@ -85,26 +91,34 @@ impl Default for PacketGenerator {
 }
 
 impl PacketGenerator {
-    pub fn get_info(&mut self) -> Content<Generic> {
-        Content {
+    pub fn new(uc: u8, id: u8) -> PacketGenerator {
+        PacketGenerator {
+            uc: uc,
+            id: id,
+            crc8_maxim: Crc::<u8>::new(0x31, 8, 0, 0, true),
+        }
+    }
+
+    pub fn get_info(&mut self) -> Vec<u8> {
+        self.serialize(Content {
             uc: self.uc,
             id: self.id,
             command: COMMAND_GET_INFO,
             p: Generic {},
-        }
+        })
     }
 
-    pub fn get_version(&mut self) -> Content<Generic> {
-        Content {
+    pub fn get_version(&mut self) -> Vec<u8> {
+        self.serialize(Content {
             uc: self.uc,
             id: self.id,
             command: COMMAND_GET_VERSION,
             p: Generic {},
-        }
+        })
     }
 
-    pub fn get_version_response(&mut self) -> Content<GetVersionResponse> {
-        Content {
+    pub fn get_version_response(&mut self) -> Vec<u8> {
+        self.serialize(Content {
             uc: self.uc,
             id: self.id,
             command: COMMAND_GET_VERSION,
@@ -118,11 +132,11 @@ impl PacketGenerator {
                 name: "Test".to_string(),
                 sn: vec![1, 2, 3, 4],
             },
-        }
+        })
     }
 
-    pub fn write_register(&mut self, off: u32, ctrl: u8, d: Vec<u8>) -> Content<WriteRegister> {
-        Content {
+    pub fn write_register(&mut self, off: u32, ctrl: u8, d: Vec<u8>) -> Vec<u8> {
+        self.serialize(Content {
             uc: self.uc,
             id: self.id,
             command: COMMAND_WRITE_REGISTER,
@@ -131,10 +145,10 @@ impl PacketGenerator {
                 ctrl: ctrl,
                 d: d,
             },
-        }
+        })
     }
 
-    pub fn serialize<T: Serialize>(&mut self, packet: T) -> Vec<u8> {
+    pub fn serialize<T: Serialize>(&mut self, packet: Content<T>) -> Vec<u8> {
         let mut serialized = bincode::serialize(&packet).unwrap();
 
         // Calculate crc
@@ -163,23 +177,15 @@ mod tests {
     #[test]
     fn get_info() {
         let mut pg = PacketGenerator::default();
-        let content = pg.get_info();
 
-        assert_eq!(
-            pg.serialize(content),
-            vec![STX, 0x01, 0x01, 0x49, 0xB5, ETX]
-        );
+        assert_eq!(pg.get_info(), vec![STX, 0x01, 0x01, 0x49, 0xB5, ETX]);
     }
 
     #[test]
     fn get_version() {
         let mut pg = PacketGenerator::default();
-        let content = pg.get_version();
 
-        assert_eq!(
-            pg.serialize(content),
-            vec![STX, 0x01, 0x01, 0x56, 0x69, ETX]
-        );
+        assert_eq!(pg.get_version(), vec![STX, 0x01, 0x01, 0x56, 0x69, ETX]);
     }
 
     #[test]
@@ -234,32 +240,21 @@ mod tests {
     #[test]
     fn write_register() {
         let mut pg = PacketGenerator::default();
-        let p = pg.write_register(10, 0xF0, vec![1, 2, 3, 4]);
 
         assert_eq!(
-            pg.serialize(p),
+            pg.write_register(10, 0xF0, vec![1, 2, 3, 4]),
             vec![STX, 0x01, 0x01, 0x57, 10, 0, 0, 0, 0xF0, 4, 1, 2, 3, 4, 0xB6, ETX]
         );
-    }
-
-    #[test]
-    fn get_info_serialized() {
-        let mut pg = PacketGenerator::default();
-
-        let p = pg.get_info();
-        let serialized = pg.serialize(&p);
-        let deserialize: Packet<Content<Generic>> = pg.deserialize(&serialized);
-
-        assert_eq!(p, deserialize.content);
     }
 
     #[test]
     fn write_register_serialized() {
         let mut pg = PacketGenerator::default();
         let p = pg.write_register(10, 0xF0, vec![1, 2, 3, 4]);
-        let serialized = pg.serialize(&p);
-        let deserialize: Packet<Content<WriteRegister>> = pg.deserialize(&serialized);
+        let deserialize: Packet<Content<WriteRegister>> = pg.deserialize(&p);
 
-        assert_eq!(p, deserialize.content);
+        assert_eq!(deserialize.content.p.off, 10);
+        assert_eq!(deserialize.content.p.ctrl, 0xf0);
+        assert_eq!(deserialize.content.p.d, vec![1, 2, 3, 4]);
     }
 }

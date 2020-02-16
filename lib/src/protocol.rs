@@ -64,12 +64,8 @@ impl Protocol {
             let p: Packet<Content<Generic>> = self.pg.deserialize(&data);
             println!("Received {:?}", p.content);
 
-            let r = self.pg.get_version_response();
-            println!("Responded with {:?}", r);
-
-            let mut response = self.pg.serialize(r);
-
-            self.response.append(&mut response);
+            let mut r = self.pg.get_version_response();
+            self.response.append(&mut r);
         } else if command == COMMAND_WRITE_REGISTER {
             let p: Packet<Content<WriteRegister>> = self.pg.deserialize(&data);
             println!("Received {:?}", p.content);

@@ -10,9 +10,8 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect(addr)?;
 
     let mut pg = PacketGenerator::default();
-    let content = pg.get_version();
-    let packet = pg.serialize(content);
-    stream.write(&packet).unwrap();
+    let p = pg.get_version();
+    stream.write(&p).unwrap();
 
     let mut protocol = Protocol::default();
     let mut buffer = [0; 10];
