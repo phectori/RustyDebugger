@@ -10,7 +10,7 @@ fn handle_client(mut stream: TcpStream) {
     let mut data = [0 as u8; 50];
     while match stream.read(&mut data) {
         Ok(size) => {
-            print_packet(&mut data, size);
+            //print_packet(&mut data, size);
             if let Some(packet) = p.process_data(data[0..size].to_vec()) {
                 p.process_packet_host(packet);
                 stream.write(&p.take_response()).unwrap();
@@ -25,19 +25,19 @@ fn handle_client(mut stream: TcpStream) {
     } {}
 }
 
-fn print_packet(data: &mut [u8], size: usize) {
-    for i in 0..size {
-        match data[i] {
-            ETX => {
-                print!("0x{:x?}\n", data[i]);
-            }
-            _ => {
-                print!("0x{:x?} ", data[i]);
-            }
-        }
-        std::io::stdout().flush().unwrap();
-    }
-}
+// fn print_packet(data: &mut [u8], size: usize) {
+//     for i in 0..size {
+//         match data[i] {
+//             ETX => {
+//                 print!("0x{:x?}\n", data[i]);
+//             }
+//             _ => {
+//                 print!("0x{:x?} ", data[i]);
+//             }
+//         }
+//         std::io::stdout().flush().unwrap();
+//     }
+// }
 
 fn main() {
     let ip = std::net::Ipv6Addr::UNSPECIFIED;

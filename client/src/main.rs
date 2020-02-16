@@ -9,7 +9,9 @@ fn main() -> std::io::Result<()> {
     let addr = std::net::SocketAddrV6::new(ip, 34254, 0, 0);
     let mut stream = TcpStream::connect(addr)?;
 
-    let packet = PacketGenerator::serialize(PacketGenerator::get_version());
+    let mut pg = PacketGenerator::default();
+    let content = pg.get_version();
+    let packet = pg.serialize(content);
     stream.write(&packet).unwrap();
 
     let mut protocol = Protocol::default();

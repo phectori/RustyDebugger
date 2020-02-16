@@ -1,6 +1,7 @@
 use crate::packet::*;
 
 pub struct Protocol {
+    pg: PacketGenerator,
     data: Vec<u8>,
     response: Vec<u8>,
 }
@@ -8,6 +9,7 @@ pub struct Protocol {
 impl Default for Protocol {
     fn default() -> Self {
         Protocol {
+            pg: PacketGenerator::default(),
             data: Vec::new(),
             response: Vec::new(),
         }
@@ -46,11 +48,11 @@ impl Protocol {
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
-            let p: Packet<Content<GetVersionResponse>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p.content.p);
+            let p: Packet<Content<GetVersionResponse>> = self.pg.deserialize(&data);
+            println!("Received {:?}", p.content);
         } else if command == COMMAND_WRITE_REGISTER {
-            let p: Packet<Content<WriteRegisterResponse>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p.content.p);
+            let p: Packet<Content<WriteRegisterResponse>> = self.pg.deserialize(&data);
+            println!("Received {:?}", p.content);
         }
     }
 
@@ -59,32 +61,18 @@ impl Protocol {
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
-            let p: Packet<Content<Generic>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p.content.p);
+            let p: Packet<Content<Generic>> = self.pg.deserialize(&data);
+            println!("Received {:?}", p.content);
 
-            let r = Content {
-                uc: 1, // TODO
-                id: 1, // TODO
-                command: COMMAND_GET_VERSION,
-                p: GetVersionResponse {
-                    dv3: 2,
-                    dv2: 3,
-                    dv01: 1113,
-                    av3: 2,
-                    av2: 3,
-                    av01: 1113,
-                    name: "Test".to_string(),
-                    sn: vec![1, 2, 3, 4],
-                },
-            };
+            let r = self.pg.get_version_response();
             println!("Responded with {:?}", r);
 
-            let mut response = PacketGenerator::serialize(r);
+            let mut response = self.pg.serialize(r);
 
             self.response.append(&mut response);
         } else if command == COMMAND_WRITE_REGISTER {
-            let p: Packet<Content<WriteRegister>> = PacketGenerator::deserialize(&data);
-            println!("Received {:?}", p.content.p);
+            let p: Packet<Content<WriteRegister>> = self.pg.deserialize(&data);
+            println!("Received {:?}", p.content);
         }
     }
 
