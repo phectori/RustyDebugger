@@ -1,5 +1,5 @@
 use std::io::prelude::*;
-use std::net::{Shutdown, TcpStream};
+use std::net::TcpStream;
 
 pub use edlib::packet::PacketGenerator;
 pub use edlib::protocol::Protocol;

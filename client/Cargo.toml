@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 edlib = { path = "../lib"}
+lognplot = { git = "https://github.com/windelbouwman/lognplot" }

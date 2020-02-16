@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 serde = "1.0.104"
 serde_derive = "1.0.104"
-bincode = "1.2.1"
+bincode = { git = "https://github.com/phectori/bincode.git", branch = "sizefield_is_u8" }
 crc_all = "0.2.0"
