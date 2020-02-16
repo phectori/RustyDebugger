@@ -48,11 +48,14 @@ impl Protocol {
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
-            let p: Packet<Content<GetVersionResponse>> = self.pg.deserialize(&data);
+            let p: Packet<Content<GetVersionHost>> = self.pg.deserialize(&data);
             println!("Received {:?}", p.content);
         } else if command == COMMAND_WRITE_REGISTER {
-            let p: Packet<Content<WriteRegisterResponse>> = self.pg.deserialize(&data);
+            let p: Packet<Content<WriteRegisterHost>> = self.pg.deserialize(&data);
             println!("Received {:?}", p.content);
+        } else if command == COMMAND_READ_CHANNEL_DATA {
+            // let p: Packet<Content<WriteRegisterHost>> = self.pg.deserialize(&data);
+            // println!("Received {:?}", p.content);
         }
     }
 

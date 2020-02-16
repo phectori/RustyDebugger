@@ -39,7 +39,7 @@ pub struct Generic {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct GetVersionResponse {
+pub struct GetVersionHost {
     /// Debug library/protocol version
     pub dv3: u8,
     pub dv2: u8,
@@ -55,6 +55,13 @@ pub struct GetVersionResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct GetInfoHost {
+    pub type_n: u8,
+    pub size_n: u8,
+    pub rs: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct WriteRegister {
     /// Offset address in bytes (4Gb addressable)
     pub off: u32,
@@ -66,12 +73,28 @@ pub struct WriteRegister {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct WriteRegisterResponse {
+pub struct WriteRegisterHost {
     /// Result:
     /// 0x00 = ok, value is written
     /// 0x01 = invalid (offset) address
     /// 0x02 = error dereferencing (null-pointer appeared at some dereference)
     pub result: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct ReadChannelData {
+    // 0 = turn off (µC stops sending channel data)
+    // 1 = turn on (µC starts send channel data continuously)
+    // 2 = once (µC sends debug-data once of channels that are configured as ‘once’)
+    pub trace: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct ReadChannelDataHost {
+    pub time2: u8,
+    pub time1: u8,
+    pub time0: u8,
+    pub mask: u16,
 }
 
 pub struct PacketGenerator {
@@ -99,30 +122,29 @@ impl PacketGenerator {
         }
     }
 
-    pub fn get_info(&mut self) -> Vec<u8> {
-        self.serialize(Content {
+    fn get_content<T: Serialize>(&mut self, command: u8, package: T) -> Content<T> {
+        Content {
             uc: self.uc,
             id: self.id,
-            command: COMMAND_GET_INFO,
-            p: Generic {},
-        })
+            command: command,
+            p: package,
+        }
+    }
+
+    pub fn get_info(&mut self) -> Vec<u8> {
+        let c = self.get_content(COMMAND_GET_INFO, Generic {});
+        self.serialize(c)
     }
 
     pub fn get_version(&mut self) -> Vec<u8> {
-        self.serialize(Content {
-            uc: self.uc,
-            id: self.id,
-            command: COMMAND_GET_VERSION,
-            p: Generic {},
-        })
+        let c = self.get_content(COMMAND_GET_VERSION, Generic {});
+        self.serialize(c)
     }
 
     pub fn get_version_response(&mut self) -> Vec<u8> {
-        self.serialize(Content {
-            uc: self.uc,
-            id: self.id,
-            command: COMMAND_GET_VERSION,
-            p: GetVersionResponse {
+        let c = self.get_content(
+            COMMAND_GET_VERSION,
+            GetVersionHost {
                 dv3: 2,
                 dv2: 3,
                 dv01: 1113,
@@ -132,20 +154,20 @@ impl PacketGenerator {
                 name: "Test".to_string(),
                 sn: vec![1, 2, 3, 4],
             },
-        })
+        );
+        self.serialize(c)
     }
 
     pub fn write_register(&mut self, off: u32, ctrl: u8, d: Vec<u8>) -> Vec<u8> {
-        self.serialize(Content {
-            uc: self.uc,
-            id: self.id,
-            command: COMMAND_WRITE_REGISTER,
-            p: WriteRegister {
+        let c = self.get_content(
+            COMMAND_WRITE_REGISTER,
+            WriteRegister {
                 off: off,
                 ctrl: ctrl,
                 d: d,
             },
-        })
+        );
+        self.serialize(c)
     }
 
     pub fn serialize<T: Serialize>(&mut self, packet: Content<T>) -> Vec<u8> {
@@ -197,7 +219,7 @@ mod tests {
                 uc: 1,
                 id: 1,
                 command: COMMAND_GET_VERSION,
-                p: GetVersionResponse {
+                p: GetVersionHost {
                     dv3: 2,
                     dv2: 3,
                     dv01: 1113,
