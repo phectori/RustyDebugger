@@ -48,10 +48,10 @@ pub struct GetVersionHost {
     pub av3: u8,
     pub av2: u8,
     pub av01: u16,
-    /// Name
-    pub name: String,
-    /// Serial number
-    pub sn: Vec<u8>,
+    // /// Name
+    // pub name: String,
+    // /// Serial number
+    // pub sn: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -151,8 +151,8 @@ impl PacketGenerator {
                 av3: 2,
                 av2: 3,
                 av01: 1113,
-                name: "Test".to_string(),
-                sn: vec![1, 2, 3, 4],
+                // name: "Test".to_string(),
+                // sn: vec![1, 2, 3, 4],
             },
         );
         self.serialize(c)
@@ -188,6 +188,7 @@ impl PacketGenerator {
     where
         T: serde::de::Deserialize<'a>,
     {
+        // Todo, handle unwrap
         bincode::deserialize(&data).unwrap()
     }
 }
@@ -226,8 +227,8 @@ mod tests {
                     av3: 2,
                     av2: 3,
                     av01: 1113,
-                    name: "Test".to_string(),
-                    sn: vec![1, 2, 3, 4],
+                    // name: "Test".to_string(),
+                    // sn: vec![1, 2, 3, 4],
                 },
             }),
             vec![
@@ -243,17 +244,17 @@ mod tests {
                 0x03,
                 0x59,
                 0x04,
-                0x04,
-                84,
-                101,
-                115,
-                116,
-                0x04,
-                1,
-                2,
-                3,
-                4,
-                0x7F,
+                // 0x04,
+                // 84,
+                // 101,
+                // 115,
+                // 116,
+                // 0x04,
+                // 1,
+                // 2,
+                // 3,
+                // 4,
+                169,
                 ETX
             ]
         );

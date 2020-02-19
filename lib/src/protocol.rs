@@ -1,4 +1,5 @@
 use crate::packet::*;
+use std::io::{self, Write};
 
 pub struct Protocol {
     pg: PacketGenerator,
@@ -45,6 +46,11 @@ impl Protocol {
 
     // Processing incomming messages on the client side (Debugger side)
     pub fn process_packet(&mut self, data: Vec<u8>) {
+        //println!("Received raw data {:x?}", data);
+        if data.len() < 4 {
+            return;
+        }
+
         let command = data[3];
 
         if command == COMMAND_GET_VERSION {
@@ -56,6 +62,12 @@ impl Protocol {
         } else if command == COMMAND_READ_CHANNEL_DATA {
             // let p: Packet<Content<WriteRegisterHost>> = self.pg.deserialize(&data);
             // println!("Received {:?}", p.content);
+        } else if command == COMMAND_DEBUG_STRING {
+            for i in 4..data.len() - 2 {
+                print!("{}", data[i] as char);
+            }
+
+            std::io::stdout().flush().unwrap();
         }
     }
 
